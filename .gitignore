@@ -51,3 +51,7 @@ po/Makefile
 po/POTFILES
 src/.deps/
 src/Makefile
+
+# binary
+*.o
+src/mentohust
