@@ -2,3 +2,4 @@
 #cmakedefine NO_ENCODE_PASS
 #cmakedefine NO_DYLOAD
 #cmakedefine NO_ARP
+#cmakedefine BUILD_OPENWRT
