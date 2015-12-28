@@ -7,6 +7,9 @@
 .cproject
 .autotools
 
+# idea
+.idea
+
 ##misc
 ABOUT-NLS
 COPYING
