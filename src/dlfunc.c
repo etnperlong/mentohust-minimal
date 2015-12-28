@@ -42,7 +42,7 @@ int load_libpcap(void) {
 		error = dlerror();
 	}
 	if (libpcap == NULL) {
-		printf(_("!! 打开libpcap失败，请检查是否已安装该库文件。\n"));
+		printf("!! failed loading libpcap, please ensure its existence.\n");
 		return -1;
 	}
 	if ((pcap_findalldevs = dlsym(libpcap, "pcap_findalldevs"), error = dlerror()) != NULL
@@ -56,7 +56,7 @@ int load_libpcap(void) {
 		|| (pcap_close = dlsym(libpcap, "pcap_close"), error = dlerror()) != NULL
 		|| (pcap_breakloop = dlsym(libpcap, "pcap_breakloop"), error = dlerror()) != NULL
 		|| (pcap_sendpacket = dlsym(libpcap, "pcap_sendpacket"), error = dlerror()) != NULL) {
-		printf(_("!! 从libpcap获取函数失败: %s\n"), error);
+		printf("!! failed loading symbol from libpcap: %s\n", error);
 		free_libpcap();
 		return -1;
 	}
@@ -72,87 +72,3 @@ void free_libpcap(void) {
 }
 
 #endif	/* NO_DYLOAD */
-
-#ifndef NO_NOTIFY
-#include <dlfcn.h>
-#include <unistd.h>
-
-typedef void NotifyNotification, GtkWidget, GError;
-typedef char gchar;
-typedef int gint, gboolean;
-
-static gboolean (*notify_notification_update)(NotifyNotification *, const gchar *,
-				const gchar *, const gchar *);
-static void (*notify_notification_set_timeout)(NotifyNotification *, gint);
-static gboolean (*notify_notification_show)(NotifyNotification *, GError **);
-
-static void *libnotify = NULL;
-static NotifyNotification *notify = NULL;
-
-static int load_libnotify(void) {
-	char *error;
-	gboolean (*notify_init)(const char *);
-	NotifyNotification *(*notify_notification_new)(const gchar *, const gchar *,
-					const gchar *, GtkWidget *);
-#ifdef MAC_OS
-	char *file[] = {"libnotify.dylib", "libnotify.1.dylib"};
-	int i, count = 2;
-#else
-	char *file[] = {"libnotify.so", "libnotify.so.1"};
-	int i, count = 2;
-#endif
-	for (i=0; i<count && !libnotify; i++) {
-		libnotify = dlopen(file[i], RTLD_LAZY);
-		error = dlerror();
-	}
-	if (libnotify == NULL) {
-		printf(_("!! 打开libnotify失败，请检查是否已安装该库文件。\n"));
-		return -1;
-	}
-	if ((notify_init = dlsym(libnotify, "notify_init"), error = dlerror()) != NULL
-		|| (notify_notification_new = dlsym(libnotify, "notify_notification_new"), error = dlerror()) != NULL
-		|| (notify_notification_show = dlsym(libnotify, "notify_notification_show"), error = dlerror()) != NULL
-		|| (notify_notification_update = dlsym(libnotify, "notify_notification_update"), error = dlerror()) != NULL
-		|| (notify_notification_set_timeout = dlsym(libnotify, "notify_notification_set_timeout"), error = dlerror()) != NULL) {
-		printf(_("!! 从libnotify获取函数失败: %s\n"), error);
-		free_libnotify();
-		return -1;
-	}
-	if (!notify_init("mentohust") ||
-		!(notify = notify_notification_new("MentoHUST", NULL, NULL, NULL))) {
-		printf(_("!! 初始化libnotify失败。\n"));
-		free_libnotify();
-		return -1;
-	}
-	return 0;
-}
-
-void free_libnotify(void) {
-	void (*notify_uninit)(void);
-	if (notify) {
-		notify_uninit = dlsym(libnotify, "notify_uninit");
-		if (!dlerror())
-			notify_uninit();
-		notify = NULL;
-	}
-	if (libnotify) {
-		dlclose(libnotify);
-		dlerror();
-		libnotify = NULL;
-	}
-}
-
-int show_notify(const char *summary, char *body, int timeout) {
-	seteuid(getuid());
-	if (!notify && load_libnotify() < 0) {
-		seteuid(0);
-		return -1;
-	}
-	notify_notification_set_timeout(notify, timeout);
-	notify_notification_update(notify, summary, body, NULL);
-	notify_notification_show(notify, NULL);
-	seteuid(0);
-	return 0;
-}
-
-#endif	/* NO_NOTIFY */

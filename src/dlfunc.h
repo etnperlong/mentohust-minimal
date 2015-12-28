@@ -65,10 +65,4 @@ int load_libpcap(void);	/* 载入libpcap.so */
 void free_libpcap(void);	/* 释放libpcap.so */
 
 #endif	/* NO_DYLOAD */
-
-#ifndef NO_NOTIFY
-void free_libnotify(void);	/* 释放libnotify.so */
-int show_notify(const char *summary, char *body, int timeout);	/* 显示通知:概要、正文、超时 */
-#endif	/* NO_NOTIFY */
-
 #endif	/* HUSTMOON_DLFUNC_H */
