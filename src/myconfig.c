@@ -12,7 +12,6 @@
 #define _POSIX_SOURCE
 
 #include "myconfig.h"
-#include "i18n.h"
 #include "myini.h"
 #include "myfunc.h"
 #include "dlfunc.h"
@@ -21,7 +20,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <termios.h>
 
 #include <sys/types.h>
 #include <signal.h>
@@ -36,8 +34,6 @@
 #define D_DHCPMODE			0	/* 默认DHCP模式 */
 #define D_DAEMONMODE		0	/* 默认daemon模式 */
 #define D_MAXFAIL			8	/* 默认允许失败次数 */
-
-#define ECHOFLAGS (ECHO|ECHOE|ECHOK|ECHONL)    /* 控制台输入密码时的模式*/
 
 #ifdef MAC_OS
 static const char *D_DHCPSCRIPT = "dhcping -v -t 15";	/* 默认DHCP脚本 */

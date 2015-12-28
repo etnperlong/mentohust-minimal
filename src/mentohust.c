@@ -10,7 +10,6 @@
 #include "config.h"
 
 #include "myconfig.h"
-#include "i18n.h"
 #include "mystate.h"
 #include "myfunc.h"
 #include "dlfunc.h"

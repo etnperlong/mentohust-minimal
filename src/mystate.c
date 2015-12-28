@@ -8,7 +8,6 @@
 * 邮	箱：www.ehust@gmail.com
 */
 #include "mystate.h"
-#include "i18n.h"
 #include "myfunc.h"
 #include "dlfunc.h"
 #include <string.h>

@@ -9,7 +9,6 @@
 * 日	期：2009.11.11
 */
 #include "dlfunc.h"
-#include "i18n.h"
 
 #ifndef NO_DYLOAD
 #include <dlfcn.h>
