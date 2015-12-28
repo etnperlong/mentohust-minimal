@@ -17,7 +17,7 @@ set(SOURCE_FILES
 option(NO_ENCODE_PASS
         "Do not encode password in configuration file" OFF)
 option(NO_DYLOAD
-        "Do not use dlopen() to load external libraries" OFF)
+        "Do not use dlopen() to load external libraries" ON)
 option(NO_ARP
         "Do not process ARP info" OFF)
 
