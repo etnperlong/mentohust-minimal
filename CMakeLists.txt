@@ -35,3 +35,4 @@ endif(NO_DYLOAD)
 
 add_executable(mentohust ${SOURCE_FILES})
 target_link_libraries(mentohust ${LIBS})
+install(TARGETS mentohust DESTINATION bin COMPONENT binaries)
