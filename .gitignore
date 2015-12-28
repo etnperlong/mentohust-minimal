@@ -35,6 +35,7 @@ po/*.sin
 po/*.sed
 
 ## misc
+.ycm_extra_conf.pyc
 *.log
 *.in
 *.guess
