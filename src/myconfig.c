@@ -7,12 +7,9 @@
 * 作	者：HustMoon@BYHH
 * 邮	箱：www.ehust@gmail.com
 */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#else
-static const char *VERSION = "0.3.1";
-static const char *PACKAGE_BUGREPORT = "http://code.google.com/p/mentohust/issues/list";
-#endif
+#define _DEFAULT_SOURCE
+#define _POSIX_SOURCE
 
 #include "myconfig.h"
 #include "i18n.h"
@@ -22,11 +19,12 @@ static const char *PACKAGE_BUGREPORT = "http://code.google.com/p/mentohust/issue
 #include <string.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <termios.h>
+
+#include <sys/types.h>
+#include <signal.h>
 
 #define ACCOUNT_SIZE		65	/* 用户名密码长度*/
 #define NIC_SIZE			16	/* 网卡名最大长度 */
@@ -445,9 +443,9 @@ static void saveConfig(int daemonMode)
 #endif
 	setString(&buf, "MentoHUST", "Username", userName);
 	if (saveFile(buf, CFG_FILE) != 0)
-		printf("!! 保存认证参数到%s失败！\n", CFG_FILE);
+		printf("!! failed saving parameters to %s\n", CFG_FILE);
 	else
-		printf("** 认证参数已成功保存到%s.\n", CFG_FILE);
+		printf("** parameters saved to %s\n", CFG_FILE);
 	free(buf);
 }
 
@@ -456,7 +454,7 @@ static void checkRunning(int exitFlag, int daemonMode)
 	struct flock fl;
 	lockfd = open (LOCK_FILE, O_RDWR|O_CREAT, LOCKMODE);
 	if (lockfd < 0) {
-		perror("!! 打开锁文件失败");
+		perror("!! failed opening lock file");
 		goto error_exit;
 	}
 	fl.l_start = 0;
@@ -464,7 +462,7 @@ static void checkRunning(int exitFlag, int daemonMode)
 	fl.l_len = 0;
 	fl.l_type = F_WRLCK;
 	if (fcntl(lockfd, F_GETLK, &fl) < 0) {
-		perror("!! 获取文件锁失败");
+		perror("!! lock failed");
 		goto error_exit;
 	}
 	if (exitFlag) {

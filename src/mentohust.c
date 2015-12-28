@@ -7,9 +7,7 @@
 * 作	者：HustMoon@BYHH
 * 邮	箱：www.ehust@gmail.com
 */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "myconfig.h"
 #include "i18n.h"
@@ -83,7 +81,7 @@ static void sig_handle(int sig)
 		if (-1 == switchState(state))
 		{
 			pcap_breakloop(hPcap);
-			printf("!! 发送数据包失败, 请检查网络连接！\n");
+			printf("!! failed sending packets, please check your network connection\n");
 			exit(EXIT_FAILURE);
 		}
 	}

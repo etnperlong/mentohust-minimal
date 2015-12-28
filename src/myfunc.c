@@ -6,11 +6,7 @@
 * 摘	要：认证相关算法及方法
 * 作	者：HustMoon@BYHH
 */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#else
-#define HAVE_ICONV_H
-#endif
 
 #include "myfunc.h"
 #include "md5.h"
@@ -20,10 +16,13 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <net/if.h>
 #include <arpa/inet.h>
+#ifdef __linux__
+#include <linux/if.h>
+#else
+#include <net/if.h>
+#endif
 #ifndef SIOCGIFHWADDR	/* BSD、MacOS */
 #include <net/if_dl.h>
 #include <ifaddrs.h>

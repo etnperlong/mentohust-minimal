@@ -7,9 +7,7 @@
 * 作	者：kkHAIKE
 */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "mycheck.h"
 #include "myini.h"
