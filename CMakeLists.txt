@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.4)
-project(mentohust_minimal VERSION 0.3.1 LANGUAGES C)
+cmake_minimum_required(VERSION 2.8.11)
+project(mentohust_minimal C)
+set(PROJECT_VERSION 0.3.1)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
