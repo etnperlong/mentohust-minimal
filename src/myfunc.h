@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 char *gbk2utf(char *src, size_t srclen);	/* GBK转UTF－8 */
-char *formatIP(u_int32_t ip);	/* 格式化IP */
+char *formatIP(uint32_t ip);	/* 格式化IP */
 char *formatHex(const void *buf, int length);	/* 格式化成十六进制形式 */
 void printSuConfig(const char *SuConfig);   /* 显示锐捷配置文件 */
 void newBuffer();	/* 检测数据文件有效性并分配内存 */

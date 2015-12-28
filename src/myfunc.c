@@ -38,20 +38,20 @@ const uint8_t RUIJIE_ADDR[] = {0x01,0xD0,0xF8,0x00,0x00,0x03};
 static const char *DATAFILE = "/etc/mentohust/";	/* 默认数据文件(目录) */
 
 static int dataOffset;	/* 抓包偏移 */
-static u_int32_t echoKey = 0, echoNo = 0;	/* Echo阶段所需 */
+static uint32_t echoKey = 0, echoNo = 0;	/* Echo阶段所需 */
 uint8_t *fillBuf = NULL;	/* 填充包地址 */
 int fillSize = 0;	/* 填充包大小 */
 int bufType = 0;	/*0内置xrgsu 1内置Win 2仅文件 3文件+校验*/
 uint8_t version[2];	/* 版本 */
 #ifndef NO_ARP
-u_int32_t rip = 0;	/* 实际IP */
+uint32_t rip = 0;	/* 实际IP */
 uint8_t gateMAC[6];	/* 网关MAC */
 #endif
 
 extern char password[];
 extern char nic[];
 extern char dataFile[];
-extern u_int32_t ip, mask, gateway, dns, pingHost;
+extern uint32_t ip, mask, gateway, dns, pingHost;
 extern uint8_t localMAC[], destMAC[];
 extern unsigned startMode, dhcpMode;
 
@@ -92,7 +92,7 @@ char *gbk2utf(char *src, size_t srclen) {
 	return dst;
 }
 
-char *formatIP(u_int32_t ip)
+char *formatIP(uint32_t ip)
 {
 	static char tmp[16];
 	uint8_t *p = (uint8_t *)(&ip);
@@ -122,7 +122,7 @@ static int checkFile() {
 		fclose(fp);
 		goto fileError;
 	}
-	dataOffset = (int)LTOBL(*(u_int32_t *)buf ^ *(u_int32_t *)(buf + 8)) + 16;
+	dataOffset = (int)LTOBL(*(uint32_t *)buf ^ *(uint32_t *)(buf + 8)) + 16;
 	fseek(fp, 0, SEEK_END);
 	fillSize = ftell(fp);
 	fclose(fp);
@@ -479,7 +479,7 @@ static int Check(const uint8_t *md5Seed)	/* 客户端校验 */
 void fillEchoPacket(uint8_t *echoBuf)
 {
 	int i;
-	u_int32_t dd1=htonl(echoKey + echoNo), dd2=htonl(echoNo);
+	uint32_t dd1=htonl(echoKey + echoNo), dd2=htonl(echoNo);
 	uint8_t *bt1=(uint8_t *)&dd1, *bt2=(uint8_t *)&dd2;
 	echoNo++;
 	for (i=0; i<4; i++)

@@ -33,16 +33,16 @@ extern char dhcpScript[];
 extern pcap_t *hPcap;
 extern uint8_t *fillBuf;
 extern unsigned fillSize;
-extern u_int32_t pingHost;
+extern uint32_t pingHost;
 #ifndef NO_ARP
-extern u_int32_t rip, gateway;
+extern uint32_t rip, gateway;
 extern uint8_t gateMAC[];
 static void sendArpPacket();	/* ARP监视 */
 #endif
 
 static void setTimer(unsigned interval);	/* 设置定时器 */
 static int renewIP();	/* 更新IP */
-static void fillEtherAddr(u_int32_t protocol);  /* 填充MAC地址和协议 */
+static void fillEtherAddr(uint32_t protocol);  /* 填充MAC地址和协议 */
 static int sendStartPacket();	 /* 发送Start包 */
 static int sendIdentityPacket();	/* 发送Identity包 */
 static int sendChallengePacket();   /* 发送Md5 Challenge包 */
@@ -143,12 +143,12 @@ static int renewIP()
 	return switchState(ID_START);
 }
 
-static void fillEtherAddr(u_int32_t protocol)
+static void fillEtherAddr(uint32_t protocol)
 {
 	memset(sendPacket, 0, 0x3E8);
 	memcpy(sendPacket, destMAC, 6);
 	memcpy(sendPacket+0x06, localMAC, 6);
-	*(u_int32_t *)(sendPacket+0x0C) = htonl(protocol);
+	*(uint32_t *)(sendPacket+0x0C) = htonl(protocol);
 }
 
 static int sendStartPacket()
@@ -160,8 +160,8 @@ static int sendStartPacket()
 			printf(">> looking for authentication server...\n");
 			memcpy(sendPacket, STANDARD_ADDR, 6);
 			memcpy(sendPacket+0x06, localMAC, 6);
-			*(u_int32_t *)(sendPacket+0x0C) = htonl(0x888E0101);
-			*(u_int16_t *)(sendPacket+0x10) = 0;
+			*(uint32_t *)(sendPacket+0x0C) = htonl(0x888E0101);
+			*(uint16_t *)(sendPacket+0x10) = 0;
 			memset(sendPacket+0x12, 0xa5, 42);
 			setTimer(timeout);
 		}
@@ -186,8 +186,8 @@ static int sendIdentityPacket()
 		if (sendCount == 0)
 		{
 			printf(">> sending username...\n");
-			*(u_int16_t *)(sendPacket+0x0E) = htons(0x0100);
-			*(u_int16_t *)(sendPacket+0x10) = *(u_int16_t *)(sendPacket+0x14) = htons(nameLen+30);
+			*(uint16_t *)(sendPacket+0x0E) = htons(0x0100);
+			*(uint16_t *)(sendPacket+0x10) = *(uint16_t *)(sendPacket+0x14) = htons(nameLen+30);
 			sendPacket[0x12] = 0x02;
 			sendPacket[0x16] = 0x01;
 			sendPacket[0x17] = 0x01;
@@ -204,7 +204,7 @@ static int sendIdentityPacket()
 		printf(">> sending username...\n");
 		fillEtherAddr(0x888E0100);
 		nameLen = strlen(userName);
-		*(u_int16_t *)(sendPacket+0x14) = *(u_int16_t *)(sendPacket+0x10) = htons(nameLen+5);
+		*(uint16_t *)(sendPacket+0x14) = *(uint16_t *)(sendPacket+0x10) = htons(nameLen+5);
 		sendPacket[0x12] = 0x02;
 		sendPacket[0x13] = capBuf[0x13];
 		sendPacket[0x16] = 0x01;
@@ -223,8 +223,8 @@ static int sendChallengePacket()
 		if (sendCount == 0)
 		{
 			printf(">> sending password...\n");
-			*(u_int16_t *)(sendPacket+0x0E) = htons(0x0100);
-			*(u_int16_t *)(sendPacket+0x10) = *(u_int16_t *)(sendPacket+0x14) = htons(nameLen+22);
+			*(uint16_t *)(sendPacket+0x0E) = htons(0x0100);
+			*(uint16_t *)(sendPacket+0x10) = *(uint16_t *)(sendPacket+0x14) = htons(nameLen+22);
 			sendPacket[0x12] = 0x02;
 			sendPacket[0x13] = capBuf[0x13];
 			sendPacket[0x16] = 0x04;
@@ -240,7 +240,7 @@ static int sendChallengePacket()
 		printf(">> sending password...\n");
 		fillMd5Packet(capBuf+0x18);
 		fillEtherAddr(0x888E0100);
-		*(u_int16_t *)(sendPacket+0x14) = *(u_int16_t *)(sendPacket+0x10) = htons(nameLen+22);
+		*(uint16_t *)(sendPacket+0x14) = *(uint16_t *)(sendPacket+0x10) = htons(nameLen+22);
 		sendPacket[0x12] = 0x02;
 		sendPacket[0x13] = capBuf[0x13];
 		sendPacket[0x16] = 0x04;
@@ -257,8 +257,8 @@ static int sendEchoPacket()
 {
 	if (startMode%3 == 2)	/* 赛尔 */
 	{
-		*(u_int16_t *)(sendPacket+0x0E) = htons(0x0106);
-		*(u_int16_t *)(sendPacket+0x10) = 0;
+		*(uint16_t *)(sendPacket+0x0E) = htons(0x0106);
+		*(uint16_t *)(sendPacket+0x10) = 0;
 		memset(sendPacket+0x12, 0xa5, 42);
 		switchState(ID_WAITECHO);	/* 继续等待 */
 		return pcap_sendpacket(hPcap, sendPacket, 60);
@@ -284,8 +284,8 @@ static int sendLogoffPacket()
 	setTimer(0);	/* 取消定时器 */
 	if (startMode%3 == 2)	/* 赛尔 */
 	{
-		*(u_int16_t *)(sendPacket+0x0E) = htons(0x0102);
-		*(u_int16_t *)(sendPacket+0x10) = 0;
+		*(uint16_t *)(sendPacket+0x0E) = htons(0x0102);
+		*(uint16_t *)(sendPacket+0x10) = 0;
 		memset(sendPacket+0x12, 0xa5, 42);
 		return pcap_sendpacket(hPcap, sendPacket, 60);
 	}

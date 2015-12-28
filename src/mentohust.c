@@ -27,7 +27,7 @@ extern unsigned startMode, dhcpMode, maxFail;
 extern uint8_t destMAC[];
 extern int lockfd;
 #ifndef NO_ARP
-extern u_int32_t rip, gateway;
+extern uint32_t rip, gateway;
 extern uint8_t gateMAC[];
 #endif
 
@@ -150,7 +150,7 @@ static void pcap_handle(uint8_t *user, const struct pcap_pkthdr *h, const uint8_
 		}
 #ifndef NO_ARP
 	} else if (gateMAC[0]!=0xFE && buf[0x0c]==0x08 && buf[0x0d]==0x06) {
-		if (*(u_int32_t *)(buf+0x1c) == gateway) {
+		if (*(uint32_t *)(buf+0x1c) == gateway) {
 			char str[50];
 			if (gateMAC[0] == 0xFF) {
 				memcpy(gateMAC, buf+0x16, 6);
@@ -200,7 +200,7 @@ static void showRuijieMsg(const uint8_t *buf, unsigned bufLen)
 static void showCernetMsg(const uint8_t *buf)
 {
 	char *serverMsg = (char *)(buf+0x17);
-	int length = ntohs(*(u_int16_t *)(buf+0x14)) - 5;
+	int length = ntohs(*(uint16_t *)(buf+0x14)) - 5;
 	if (strlen(serverMsg) < length)
 		length = strlen(serverMsg);
 	if (length>0 && (serverMsg=gbk2utf(serverMsg, length))!=NULL)

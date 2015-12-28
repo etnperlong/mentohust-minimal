@@ -52,11 +52,11 @@ char password[ACCOUNT_SIZE] = "";	/* 密码 */
 char nic[NIC_SIZE] = "";	/* 网卡名 */
 char dataFile[MAX_PATH] = "";	/* 数据文件 */
 char dhcpScript[MAX_PATH] = "";	/* DHCP脚本 */
-u_int32_t ip = 0;	/* 本机IP */
-u_int32_t mask = 0;	/* 子网掩码 */
-u_int32_t gateway = 0;	/* 网关 */
-u_int32_t dns = 0;	/* DNS */
-u_int32_t pingHost = 0;	/* ping */
+uint32_t ip = 0;	/* 本机IP */
+uint32_t mask = 0;	/* 子网掩码 */
+uint32_t gateway = 0;	/* 网关 */
+uint32_t dns = 0;	/* DNS */
+uint32_t pingHost = 0;	/* ping */
 uint8_t localMAC[6];	/* 本机MAC */
 uint8_t destMAC[6];	/* 服务器MAC */
 unsigned timeout = D_TIMEOUT;	/* 超时间隔 */
