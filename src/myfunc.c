@@ -6,9 +6,14 @@
 * 摘	要：认证相关算法及方法
 * 作	者：HustMoon@BYHH
 */
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#else
+#define HAVE_ICONV_H
+#endif
 
 #include "myfunc.h"
+#include "i18n.h"
 #include "md5.h"
 #include "mycheck.h"
 #include <stdio.h>
@@ -16,13 +21,10 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <arpa/inet.h>
-#ifdef __linux__
-#include <linux/if.h>
-#else
 #include <net/if.h>
-#endif
+#include <arpa/inet.h>
 #ifndef SIOCGIFHWADDR	/* BSD、MacOS */
 #include <net/if_dl.h>
 #include <ifaddrs.h>
@@ -33,36 +35,38 @@
 #include <iconv.h>
 #endif
 
-const uint8_t STANDARD_ADDR[] = {0x01,0x80,0xC2,0x00,0x00,0x03};
-const uint8_t RUIJIE_ADDR[] = {0x01,0xD0,0xF8,0x00,0x00,0x03};
+const u_char STANDARD_ADDR[] = {0x01,0x80,0xC2,0x00,0x00,0x03};
+const u_char RUIJIE_ADDR[] = {0x01,0xD0,0xF8,0x00,0x00,0x03};
 static const char *DATAFILE = "/etc/mentohust/";	/* 默认数据文件(目录) */
 
+/* Frame (527 bytes) */
+
 static int dataOffset;	/* 抓包偏移 */
-static uint32_t echoKey = 0, echoNo = 0;	/* Echo阶段所需 */
-uint8_t *fillBuf = NULL;	/* 填充包地址 */
+static u_int32_t echoKey = 0, echoNo = 0;	/* Echo阶段所需 */
+u_char *fillBuf = NULL;	/* 填充包地址 */
 int fillSize = 0;	/* 填充包大小 */
 int bufType = 0;	/*0内置xrgsu 1内置Win 2仅文件 3文件+校验*/
-uint8_t version[2];	/* 版本 */
+u_char version[2];	/* 版本 */
 #ifndef NO_ARP
-uint32_t rip = 0;	/* 实际IP */
-uint8_t gateMAC[6];	/* 网关MAC */
+u_int32_t rip = 0;	/* 实际IP */
+u_char gateMAC[6];	/* 网关MAC */
 #endif
 
 extern char password[];
 extern char nic[];
 extern char dataFile[];
-extern uint32_t ip, mask, gateway, dns, pingHost;
-extern uint8_t localMAC[], destMAC[];
+extern u_int32_t ip, mask, gateway, dns, pingHost;
+extern u_char localMAC[], destMAC[];
 extern unsigned startMode, dhcpMode;
 
 static int checkFile();	/* 检查数据文件 */
 static int getVersion();	/* 获取8021x.exe版本号 */
 static int getAddress();	/* 获取网络地址 */
-static uint8_t encode(uint8_t base);	/* 锐捷算法，颠倒一个字节的8位 */
-static void checkSum(uint8_t *buf);	/* 锐捷算法，计算两个字节的检验值 */
-static int setProperty(uint8_t type, const uint8_t *value, int length);	/* 设置指定属性 */
+static u_char encode(u_char base);	/* 锐捷算法，颠倒一个字节的8位 */
+static void checkSum(u_char *buf);	/* 锐捷算法，计算两个字节的检验值 */
+static int setProperty(u_char type, const u_char *value, int length);	/* 设置指定属性 */
 static int readPacket(int type);	/* 读取数据 */
-static int Check(const uint8_t *md5Seed);	/* 校验算法 */
+static int Check(const u_char *md5Seed);	/* 校验算法 */
 
 char *gbk2utf(char *src, size_t srclen) {
 #ifdef  HAVE_ICONV_H
@@ -92,10 +96,10 @@ char *gbk2utf(char *src, size_t srclen) {
 	return dst;
 }
 
-char *formatIP(uint32_t ip)
+char *formatIP(u_int32_t ip)
 {
 	static char tmp[16];
-	uint8_t *p = (uint8_t *)(&ip);
+	u_char *p = (u_char *)(&ip);
 	sprintf(tmp, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
 	return tmp;
 }
@@ -103,7 +107,7 @@ char *formatIP(uint32_t ip)
 char *formatHex(const void *buf, int length)
 {
 	static char hex[385];
-	uint8_t *p = (uint8_t *)buf;
+	u_char *p = (u_char *)buf;
 	int i;
 	if (length > 128)
 		length = 128;
@@ -114,7 +118,7 @@ char *formatHex(const void *buf, int length)
 }
 
 static int checkFile() {
-	uint8_t Buf[16], *buf=Buf;
+	u_char Buf[16], *buf=Buf;
 	FILE *fp = NULL;
 	if ((fp=fopen(dataFile, "rb")) == NULL)
 		goto fileError;
@@ -122,7 +126,7 @@ static int checkFile() {
 		fclose(fp);
 		goto fileError;
 	}
-	dataOffset = (int)LTOBL(*(uint32_t *)buf ^ *(uint32_t *)(buf + 8)) + 16;
+	dataOffset = (int)LTOBL(*(u_int32_t *)buf ^ *(u_int32_t *)(buf + 8)) + 16;
 	fseek(fp, 0, SEEK_END);
 	fillSize = ftell(fp);
 	fclose(fp);
@@ -135,14 +139,14 @@ static int checkFile() {
 
 fileError:
 	if (dataFile[strlen(dataFile)-1] != '/')
-		printf("!! file %s is invalid, using internal data\n", dataFile);
+		printf(_("!! 所选文件%s无效，改用内置数据认证。\n"), dataFile);
 	return -1;
 }
 
 void printSuConfig(const char *SuConfig) {
 	char dbuf[2048], *text;
 	if (decodeConfig(SuConfig, (BYTE *)dbuf, sizeof(dbuf))) {
-		printf("!! SuConfig.dat invalid\n");
+		printf(_("!! 指定的SuConfig.dat文件无效。\n"));
 	} else if ((text=gbk2utf(dbuf, strlen(dbuf))) != NULL) {
 		printf("%s\n", text);
 		free(text);
@@ -172,8 +176,8 @@ void newBuffer()
 	getVersion();
 	if (checkFile() == 0)
 		bufType += 2;
-	else fillSize = (bufType==0 ? 0x80 : 0x1d7);
-	fillBuf = (uint8_t *)malloc(fillSize);
+	else fillSize = 0x1fd;//fillSize = (bufType==0 ? 0x80 : 0x1d7);
+	fillBuf = (u_char *)malloc(fillSize);
 }
 
 static int getAddress()
@@ -186,7 +190,7 @@ static int getAddress()
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0)
 	{
-		printf("!! failed creating socket\n");
+		printf(_("!! 创建套接字失败!\n"));
 		return -1;
 	}
 	strcpy(ifr.ifr_name, nic);
@@ -221,10 +225,10 @@ static int getAddress()
 #ifndef NO_ARP
 	gateMAC[0] = 0xFE;
 	if (ioctl(sock, SIOCGIFADDR, &ifr) < 0)
-		printf("!! unable to get IP address from %s\n", nic);
+		printf(_("!! 在网卡%s上获取IP失败!\n"), nic);
 	else {
 		rip = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
-		if (gateway!=0 && (startMode%3!=2 || ((uint8_t *)&gateway)[3]!=0x02))
+		if (gateway!=0 && (startMode%3!=2 || ((u_char *)&gateway)[3]!=0x02))
 			gateMAC[0] = 0xFF;
 	}
 	if (dhcpMode!=0 || ip==-1)
@@ -232,7 +236,7 @@ static int getAddress()
 #else
 	if (dhcpMode!=0 || ip==-1) {
 		if (ioctl(sock, SIOCGIFADDR, &ifr) < 0)
-			printf("!! unable to get IP address from %s\n", nic);
+			printf(_("!! 在网卡%s上获取IP失败!\n"), nic);
 		else
 			ip = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
 	}
@@ -240,26 +244,26 @@ static int getAddress()
 
 	if (dhcpMode!=0 || mask==-1) {
 		if (ioctl(sock, SIOCGIFNETMASK, &ifr) < 0)
-			printf("!! unable to get netmask from %s\n", nic);
+			printf(_("!! 在网卡%s上获取子网掩码失败!\n"), nic);
 		else
 			mask = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
 	}
 	close(sock);
 
-	printf("** MAC address: \t%s\n", formatHex(localMAC, 6));
-	printf("** IP address: \t%s\n", formatIP(ip));
-	printf("** Netmask: \t%s\n", formatIP(mask));
+	printf(_("** 本机MAC:\t%s\n"), formatHex(localMAC, 6));
+	printf(_("** 使用IP:\t%s\n"), formatIP(ip));
+	printf(_("** 子网掩码:\t%s\n"), formatIP(mask));
 	return 0;
 
 getMACError:
 	close(sock);
-	printf("!! unable to get MAC address from %s\n", nic);
+	printf(_("!! 在网卡%s上获取MAC失败!\n"), nic);
 	return -1;
 }
 
-static uint8_t encode(uint8_t base)	/* 算法，将一个字节的8位颠倒并取反 */
+static u_char encode(u_char base)	/* 算法，将一个字节的8位颠倒并取反 */
 {
-	uint8_t result = 0;
+	u_char result = 0;
 	int i;
 	for (i=0; i<8; i++)
 	{
@@ -270,9 +274,9 @@ static uint8_t encode(uint8_t base)	/* 算法，将一个字节的8位颠倒并�
 	return ~result;
 }
 
-static void checkSum(uint8_t *buf)	/* 算法，计算两个字节的checksum */
+static void checkSum(u_char *buf)	/* 算法，计算两个字节的checksum */
 {
-	uint8_t table[] =
+	u_char table[] =
 	{
 		0x00,0x00,0x21,0x10,0x42,0x20,0x63,0x30,0x84,0x40,0xA5,0x50,0xC6,0x60,0xE7,0x70,
 		0x08,0x81,0x29,0x91,0x4A,0xA1,0x6B,0xB1,0x8C,0xC1,0xAD,0xD1,0xCE,0xE1,0xEF,0xF1,
@@ -307,7 +311,7 @@ static void checkSum(uint8_t *buf)	/* 算法，计算两个字节的checksum */
 		0x1F,0xEF,0x3E,0xFF,0x5D,0xCF,0x7C,0xDF,0x9B,0xAF,0xBA,0xBF,0xD9,0x8F,0xF8,0x9F,
 		0x17,0x6E,0x36,0x7E,0x55,0x4E,0x74,0x5E,0x93,0x2E,0xB2,0x3E,0xD1,0x0E,0xF0,0x1E
 	};
-	uint8_t *checkSum = buf + 0x15;
+	u_char *checkSum = buf + 0x15;
 	int i, index;
 	for (i=0; i<0x15; i++)
 	{
@@ -336,9 +340,9 @@ int fillHeader()
 	return 0;
 }
 
-static int setProperty(uint8_t type, const uint8_t *value, int length)
+static int setProperty(u_char type, const u_char *value, int length)
 {
-	uint8_t *p = fillBuf+0x46, *end = fillBuf+fillSize-length-8;	/* 形如1a 28 00 00 13 11 17 22，至少8个字节 */
+	u_char *p = fillBuf+0x46, *end = fillBuf+fillSize-length-8;	/* 形如1a 28 00 00 13 11 17 22，至少8个字节 */
 	while (p < end)
 	{
 		if (*p == 0x1a)	/* 有些老版本没有前两个字节，包括xrgsu */
@@ -355,7 +359,7 @@ static int setProperty(uint8_t type, const uint8_t *value, int length)
 
 static int readPacket(int type)
 {
-	uint8_t dhcp[] = {0x00};
+	u_char dhcp[] = {0x00};
 	FILE *fp = fopen(dataFile, "rb");
 	if (fp == NULL)
 		goto fileError;
@@ -376,12 +380,12 @@ static int readPacket(int type)
 	return 0;
 
 fileError:
-	printf("!! file %s is invalid, using internal authentication data\n", dataFile);
+	printf(_("!! 所选文件%s无效，改用内置数据认证。\n"), dataFile);
 	bufType -= 2;
-	if (bufType==1 && fillSize<0x1d7) {
+	if (bufType==1 && fillSize<0x1f7) {
 		free(fillBuf);
-		fillSize = 0x1d7;
-		fillBuf = (uint8_t *)malloc(fillSize);
+		fillSize = 0x1f7;
+		fillBuf = (u_char *)malloc(fillSize);
 	}
 	return -1;
 }
@@ -389,7 +393,7 @@ fileError:
 void fillStartPacket()
 {
 	if (bufType <= 1) {	/* 使用xrgsu？ */
-		const uint8_t packet0[] = {
+		const u_char packet0[] = {
 			0x00,0x00,0x13,0x11,0x38,0x30,0x32,0x31,0x78,0x2e,0x65,0x78,0x65,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,0x01,0x00,0x01,0x00,0x00,0x00,0x00,0x13,0x11,0x00,0x28,0x1a,
@@ -397,7 +401,7 @@ void fillStartPacket()
 			0x94,0x61,0x69,0x67,0x63,0x91,0x93,0x92,0x68,0x66,0x93,0x91,0x66,0x95,0x65,0xaa,
 			0xdc,0x64,0x98,0x96,0x6a,0x9d,0x66,0x00,0x00,0x13,0x11,0x18,0x06,0x02,0x00,0x00
 		};
-		const uint8_t packet1[] = {
+		const u_char packet1[] = {
 			0x00,0x00,0x13,0x11,0x38,0x30,0x32,0x31,0x78,0x2e,0x65,0x78,0x65,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,0x04,0x0a,0x00,0x02,0x00,0x00,0x00,0x13,0x11,0x01,0x8c,0x1a,
@@ -427,14 +431,17 @@ void fillStartPacket()
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1a,0x08,0x00,0x00,0x13,0x11,
 			0x55,0x02,0x1a,0x09,0x00,0x00,0x13,0x11,0x62,0x03,0x00,0x00,0x00,0x00,0x00,0x00
 		};
-		uint8_t dhcp[] = {0x00};
+		u_char dhcp[] = {0x00};
 		if (dhcpMode == 1)	/* 二次认证第一次 */
 			dhcp[0] = 0x01;
 		if (bufType == 1) {
 			memcpy(fillBuf+0x17, packet1, sizeof(packet1));
 			memcpy(fillBuf+0x3b, version, 2);
 		} else
-			memcpy(fillBuf+0x17, packet0, sizeof(packet0));
+                {
+                 //   memcpy(fillBuf, pkt1, sizeof(pkt1));
+                    memcpy(fillBuf+0x17, packet0, sizeof(packet0));
+                }
 		setProperty(0x18, dhcp, 1);
 		setProperty(0x2D, localMAC, 6);
 	}
@@ -442,7 +449,7 @@ void fillStartPacket()
 		fillStartPacket();
 }
 
-void fillMd5Packet(const uint8_t *md5Seed)
+void fillMd5Packet(const u_char *md5Seed)
 {
 	if (bufType <= 1) {	/* 不使用数据包？ */
 		/* xrgsu的Md5包与Start包只有一个字节的差异，若以其他版本为基础，可进一步区别对待 */
@@ -458,29 +465,29 @@ void fillMd5Packet(const uint8_t *md5Seed)
 	echoNo = 0x0000102B;	/* 初始化echoNo */
 }
 
-static int Check(const uint8_t *md5Seed)	/* 客户端校验 */
+static int Check(const u_char *md5Seed)	/* 客户端校验 */
 {
 	char final_str[129];
 	int value;
-	printf("** Client version: \t%d.%d\n", fillBuf[0x3B], fillBuf[0x3C]);
-	printf("** MD5 seed: \t%s\n", formatHex(md5Seed, 16));
+	printf(_("** 客户端版本:\t%d.%d\n"), fillBuf[0x3B], fillBuf[0x3C]);
+	printf(_("** MD5种子:\t%s\n"), formatHex(md5Seed, 16));
 	value = check_init(dataFile);
 	if (value == -1) {
-		printf("!! 8021x.exe info is insufficient, cannot continue client authentication\n");
+		printf(_("!! 缺少8021x.exe信息，客户端校验无法继续！\n"));
 		return 1;
 	}
 	V2_check(md5Seed, final_str);
-	printf("** V2 checksum: \t%s\n", final_str);
-	setProperty(0x17, (uint8_t *)final_str, 32);
+	printf(_("** V2校验值:\t%s\n"), final_str);
+	setProperty(0x17, (u_char *)final_str, 32);
 	check_free();
 	return 0;
 }
 
-void fillEchoPacket(uint8_t *echoBuf)
+void fillEchoPacket(u_char *echoBuf)
 {
 	int i;
-	uint32_t dd1=htonl(echoKey + echoNo), dd2=htonl(echoNo);
-	uint8_t *bt1=(uint8_t *)&dd1, *bt2=(uint8_t *)&dd2;
+	u_int32_t dd1=htonl(echoKey + echoNo), dd2=htonl(echoNo);
+	u_char *bt1=(u_char *)&dd1, *bt2=(u_char *)&dd2;
 	echoNo++;
 	for (i=0; i<4; i++)
 	{
@@ -489,18 +496,19 @@ void fillEchoPacket(uint8_t *echoBuf)
 	}
 }
 
-void getEchoKey(const uint8_t *capBuf)
+void getEchoKey(const u_char *capBuf)
 {
 	int i, offset = 0x1c+capBuf[0x1b]+0x69+24;	/* 通过比较了大量抓包，通用的提取点就是这样的 */
-	uint8_t *base = (uint8_t *)(&echoKey);
+	u_char *base;
+	echoKey = ntohl(*(u_int32_t *)(capBuf+offset));
+	base = (u_char *)(&echoKey);
 	for (i=0; i<4; i++)
-		base[i] = encode(capBuf[offset+i]);
-	echoKey = ntohl(echoKey);
+		base[i] = encode(base[i]);
 }
 
-uint8_t *checkPass(uint8_t id, const uint8_t *md5Seed, int seedLen)
+u_char *checkPass(u_char id, const u_char *md5Seed, int seedLen)
 {
-	uint8_t md5Src[80];
+	u_char md5Src[80];
 	int md5Len = strlen(password);
 	md5Src[0] = id;
 	memcpy(md5Src+1, password, md5Len);
@@ -515,7 +523,7 @@ uint8_t *checkPass(uint8_t id, const uint8_t *md5Seed, int seedLen)
 	return ComputeHash(md5Src, md5Len);
 }
 
-void fillCernetAddr(uint8_t *buf)
+void fillCernetAddr(u_char *buf)
 {
 	memcpy(buf+0x18, &ip, 4);
 	memcpy(buf+0x1C, &mask, 4);
@@ -525,7 +533,7 @@ void fillCernetAddr(uint8_t *buf)
 
 int isOnline()
 {
-	uint8_t echoPacket[] =
+	u_char echoPacket[] =
 	{
 		0x08,0x00,0x61,0xb2,0x02,0x00,0x01,0x00,0x57,0x65,0x6C,0x63,0x6F,0x6D,0x65,0x20,
 		0x74,0x6F,0x20,0x4D,0x65,0x6E,0x74,0x6F,0x48,0x55,0x53,0x54,0x21,0x0A,0x43,0x6F,
@@ -560,7 +568,7 @@ int isOnline()
 	return -1;
 
 pingError:
-	perror("!! error pinging host, disabling ping");
+	perror(_("!! Ping主机出错，关闭该功能"));
 	if (sock != -1)
 		close(sock);
 	pingHost = 0;

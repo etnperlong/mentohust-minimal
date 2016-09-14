@@ -8,10 +8,8 @@
 * 修	改：2009.10.8
 */
 #include "myini.h"
-
 #include <stdio.h>
 #include <string.h>
-#include <strings.h>
 
 #define NOT_COMMENT(c)	(c!=';' && c!='#')	/* 不是注释行 */
 

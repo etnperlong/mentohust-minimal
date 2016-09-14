@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(mentohust_minimal C)
-set(PROJECT_VERSION 0.3.1)
+set(PROJECT_VERSION 0.4.0)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -13,7 +13,16 @@ set(SOURCE_FILES
     src/myconfig.c
     src/myfunc.c
     src/myini.c
-    src/mystate.c)
+    src/mystate.c
+    src/byte_order.c
+    src/checkV4.c
+    src/rjmd5.c
+    src/rjripemd128.c
+    src/rjsha1.c
+    src/rjtiger.c
+    src/rjtiger_sbox.c
+    src/rjwhirlpool.c
+    src/rjwhirlpool_sbox.c)
 
 option(NO_ENCODE_PASS
         "Do not encode password in configuration file" OFF)

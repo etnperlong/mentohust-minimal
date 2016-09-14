@@ -9,20 +9,19 @@
 #define HUSTMOON_MYFUNC_H
 
 #include <sys/types.h>
-#include <stdint.h>
 
 char *gbk2utf(char *src, size_t srclen);	/* GBK转UTF－8 */
-char *formatIP(uint32_t ip);	/* 格式化IP */
+char *formatIP(u_int32_t ip);	/* 格式化IP */
 char *formatHex(const void *buf, int length);	/* 格式化成十六进制形式 */
 void printSuConfig(const char *SuConfig);   /* 显示锐捷配置文件 */
 void newBuffer();	/* 检测数据文件有效性并分配内存 */
 int fillHeader();	/* 填充网络地址及校验值部分 */
 void fillStartPacket();	/* 填充Start包 */
-void fillMd5Packet(const uint8_t *md5Seed);	/* 填充Md5包 */
-void fillEchoPacket(uint8_t *buf);	/* 填充Echo包 */
-void getEchoKey(const uint8_t *capBuf);	/* 获取EchoKey */
-uint8_t *checkPass(uint8_t id, const uint8_t *md5Seed, int seedLen);	/* 计算密码的md5 */
-void fillCernetAddr(uint8_t *buf);	/* 填充赛尔网络地址 */
+void fillMd5Packet(const u_char *md5Seed);	/* 填充Md5包 */
+void fillEchoPacket(u_char *buf);	/* 填充Echo包 */
+void getEchoKey(const u_char *capBuf);	/* 获取EchoKey */
+u_char *checkPass(u_char id, const u_char *md5Seed, int seedLen);	/* 计算密码的md5 */
+void fillCernetAddr(u_char *buf);	/* 填充赛尔网络地址 */
 int isOnline();	/* ping主机判断是否掉线 */
 
 #endif
